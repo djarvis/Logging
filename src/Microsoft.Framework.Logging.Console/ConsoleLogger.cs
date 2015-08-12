@@ -8,6 +8,8 @@ using Microsoft.Framework.Logging.Console.Internal;
 
 namespace Microsoft.Framework.Logging.Console
 {
+
+
     public class ConsoleLogger : ILogger
     {
         private const int _indentation = 2;
@@ -15,8 +17,15 @@ namespace Microsoft.Framework.Logging.Console
         private readonly Func<string, LogLevel, bool> _filter;
         private readonly object _lock = new object();
 
+        public ConsoleColors ConsoleColors { get; private set; }
+
+        public Action<object, LogLevel, IConsole> SetConsole { get; set; }
+
+
+
         public ConsoleLogger(string name, Func<string, LogLevel, bool> filter)
         {
+            ConsoleColors = new ConsoleColors();
             _name = name;
             _filter = filter ?? ((category, logLevel) => true);
             Console = new LogConsole();
@@ -62,6 +71,9 @@ namespace Microsoft.Framework.Logging.Console
             lock (_lock)
             {
                 SetConsoleColor(logLevel);
+
+                if (SetConsole != null) SetConsole(state, logLevel, Console);
+
                 try
                 {
                     Console.WriteLine(FormatMessage(logLevel, message));
@@ -90,23 +102,35 @@ namespace Microsoft.Framework.Logging.Console
             switch (logLevel)
             {
                 case LogLevel.Critical:
-                    Console.BackgroundColor = ConsoleColor.Red;
-                    Console.ForegroundColor = ConsoleColor.White;
+                    if (ConsoleColors.CriticalBackground != null) Console.BackgroundColor = (ConsoleColor)ConsoleColors.CriticalBackground;
+                    if (ConsoleColors.CriticalForeground != null) Console.ForegroundColor = (ConsoleColor)ConsoleColors.CriticalForeground;
                     break;
                 case LogLevel.Error:
-                    Console.ForegroundColor = ConsoleColor.Red;
+                    if (ConsoleColors.ErrorForeground != null) Console.ForegroundColor = (ConsoleColor)ConsoleColors.ErrorForeground;
+                    if (ConsoleColors.ErrorBackground != null) Console.BackgroundColor = (ConsoleColor)ConsoleColors.ErrorBackground; //
                     break;
                 case LogLevel.Warning:
-                    Console.ForegroundColor = ConsoleColor.Yellow;
+                    if (ConsoleColors.WarningForeground != null) Console.ForegroundColor = (ConsoleColor)ConsoleColors.WarningForeground;
+                    if (ConsoleColors.WarningBackground != null) Console.BackgroundColor = (ConsoleColor)ConsoleColors.WarningBackground; //
                     break;
                 case LogLevel.Information:
-                    Console.ForegroundColor = ConsoleColor.White;
+                    if (ConsoleColors.InformationForeground != null) Console.ForegroundColor = (ConsoleColor)ConsoleColors.InformationForeground;
+                    if (ConsoleColors.InformationBackground != null) Console.BackgroundColor = (ConsoleColor)ConsoleColors.InformationBackground; //
                     break;
                 case LogLevel.Verbose:
+                    if (ConsoleColors.VerboseForeground != null) Console.ForegroundColor = (ConsoleColor)ConsoleColors.VerboseForeground; //
+                    if (ConsoleColors.VerboseBackground != null) Console.BackgroundColor = (ConsoleColor)ConsoleColors.VerboseBackground; //
+                    break;
+                case LogLevel.Debug:
+                    if (ConsoleColors.DebugForeground != null) Console.ForegroundColor = (ConsoleColor)ConsoleColors.DebugForeground; //
+                    if (ConsoleColors.DebugBackground != null) Console.BackgroundColor = (ConsoleColor)ConsoleColors.DebugBackground; //
+                    break;
+
                 default:
                     Console.ForegroundColor = ConsoleColor.Gray;
                     break;
             }
+
         }
 
         public IDisposable BeginScopeImpl(object state)
@@ -198,6 +222,47 @@ namespace Microsoft.Framework.Logging.Console
             public void Dispose()
             {
             }
+        }
+    }
+
+    public class ConsoleColors
+    {
+
+
+        public ConsoleColor? WarningForeground { get; set; }
+        public ConsoleColor? WarningBackground { get; set; }
+        public ConsoleColor? VerboseForeground { get; set; }
+        public ConsoleColor? VerboseBackground { get; set; }
+        public ConsoleColor? ErrorForeground { get; set; }
+        public ConsoleColor? ErrorBackground { get; set; }
+        public ConsoleColor? InformationForeground { get; set; }
+        public ConsoleColor? InformationBackground { get; set; }
+        public ConsoleColor? CriticalForeground { get; set; }
+        public ConsoleColor? CriticalBackground { get; set; }
+        public ConsoleColor? DebugForeground { get; set; }
+        public ConsoleColor? DebugBackground { get; set; }
+
+        public ConsoleColors()
+        {
+            CriticalBackground = ConsoleColor.Red;
+            CriticalForeground = ConsoleColor.White;
+
+            ErrorForeground = ConsoleColor.Red;
+            ErrorBackground = null; // don't change
+
+            WarningForeground = ConsoleColor.Yellow;
+            WarningBackground = null; // don't change
+
+            InformationForeground = ConsoleColor.White;
+            InformationBackground = null; // don't change
+
+            VerboseForeground = ConsoleColor.Gray;
+            VerboseBackground = null; // don't change
+
+            DebugForeground = ConsoleColor.Gray;
+            DebugBackground = null; // don't change
+
+            WarningForeground = ConsoleColor.White;
         }
     }
 }
